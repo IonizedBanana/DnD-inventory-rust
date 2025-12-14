@@ -21,6 +21,22 @@ impl Item {
             println!("item Healing: {}", self.healing);
         }
     }
+    
+    fn edit_name(&mut self) {
+        self.name = String::from(get_input("enter a new name:").trim());
+    }
+
+    fn edit_description(&mut self) {
+        self.description = String::from(get_input("enter a new description:").trim());
+    }
+
+    fn edit_damage(&mut self) {
+        self.damage = String::from(get_input("enter a new damage number:").trim());
+    }
+
+    fn edit_healing(&mut self) {
+        self.healing = String::from(get_input("enter a new healing amount:").trim());
+    }
 }
 
 struct Note {
@@ -35,6 +51,14 @@ impl Note {
         if !self.body.is_empty() {
             println!("Note Body:\n{}", self.body);
         }
+    }
+    fn edit_title(&mut self) {
+        clear();
+        self.title = String::from(get_input("enter a new title:").trim());
+    }
+    fn edit_body(&mut self) {
+        clear();
+        self.body = String::from(get_input("enter a new body:").trim());
     }
 }
 
@@ -55,31 +79,46 @@ fn get_input(message: &str) -> String {
     input
 }
 
-fn get_action(message: &str) -> u32 {
+fn get_action(message: &str) -> i32 {
     loop {
         let input = get_input(message);
-        let _input: u32 = match input.trim().parse() {
+        let _input: i32 = match input.trim().parse() {
             Ok(input) => return input,
-            Err(_) => break 0
+            Err(_) => break 0,
         };
     }
 }
 
-fn view_notes(notebook: &Vec<Note>) {
+fn view_notes(notebook: &mut Vec<Note>) {
     loop {
         clear();
         let mut index = 1;
-        for note in notebook {
+        for note in & *notebook {
             println!("{}. {}", index, note.title);
             index += 1;
         }
-        let input = get_action("which note would you like to view? press enter to go back");
+        let input = get_action(
+            "which note would you like to view? press enter to go back, or enter -1 to edit",
+        );
         if input == 0 {
             break;
+        } else if input == -1 {
+            let which = get_action("which note would you like to edit?");
+            let title_or_body = get_action(
+                "would you like to edit the title or body? enter 1 for title, enter 2 for body",
+            );
+            let which = which as usize;
+            if title_or_body == 1 {
+                notebook[which - 1].edit_title();
+            } else if title_or_body == 2 {
+                notebook[which - 1].edit_body();
+            } else {
+            }
+        } else {
+            let input = input as usize;
+            notebook[input - 1].print();
+            wait();
         }
-        let input = input as usize;
-        notebook[input - 1].print();
-        wait();
     }
 }
 
@@ -95,11 +134,11 @@ fn add_note(notebook: &mut Vec<Note>) {
     notebook.push(note);
 }
 
-fn list_items(inventory: &Vec<Item>) {
+fn list_items(inventory: &mut Vec<Item>) {
     loop {
         clear();
         let mut index = 1;
-        for item in inventory {
+        for item in & *inventory {
             println!("{}. {}", index, item.name);
             if !item.damage.is_empty() && !item.healing.is_empty() {
                 println!("-> {} damage, {} healing", item.damage, item.healing);
@@ -110,13 +149,31 @@ fn list_items(inventory: &Vec<Item>) {
             }
             index += 1;
         }
-        let input = get_action("which item would you like to view? press enter to go back");
+        let input = get_action(
+            "which item would you like to view? press enter to go back, or enter -1 to edit",
+        );
         if input == 0 {
             break;
+        } else if input == -1 {
+            let which = get_action("which note would you like to edit?");
+            let which_field = get_action(
+                "which field would you like to edit?\n1. Name\n2. Description\n3. Damage\n4. Healing",
+            );
+            let which = which as usize;
+            if which_field == 1 {
+                inventory[which - 1].edit_name();
+            } else if which_field == 2 {
+                inventory[which - 1].edit_description();
+            } else if which_field == 3 {
+                inventory[which - 1].edit_damage();
+            } else if which_field == 4 {
+                inventory[which - 1].edit_healing();
+            }
+        } else {
+            let input = input as usize;
+            inventory[input - 1].print();
+            wait();
         }
-        let input = input as usize;
-        inventory[input - 1].print();
-        wait();
     }
 }
 
@@ -150,10 +207,10 @@ fn main() {
         let action = get_action(OPTIONS);
         if action == 1 {
             // item1.print();
-            list_items(&inventory);
+            list_items(&mut inventory);
         } else if action == 2 {
             // note1.print();
-            view_notes(&notebook);
+            view_notes(&mut notebook);
         } else if action == 3 {
             add_item(&mut inventory);
         } else if action == 4 {
