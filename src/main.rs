@@ -160,12 +160,18 @@ fn print_items(inventory: &Vec<Item>) {
     let mut index = 1;
     for item in inventory {
         println!("{}. {}", index, item.name);
-        if !item.damage.is_empty() && !item.healing.is_empty() {
-            println!("-> {} damage, {} healing", item.damage, item.healing);
-        } else if !item.healing.is_empty() {
-            println!("-> {} healing", item.healing);
+        if !item.damage.is_empty() && !item.healing.is_empty() && !item.value.is_empty() {
+            println!("-> {} damage, {} healing, value: {}", item.damage, item.healing, item.value);
+        } else if !item.healing.is_empty() && !item.value.is_empty() {
+            println!("-> {} healing, value: {}", item.healing, item.value);
+        } else if !item.damage.is_empty() && !item.value.is_empty() {
+            println!("-> {} damage, value: {}", item.damage, item.value);
+        } else if !item.value.is_empty() {
+            println!("-> value: {}", item.value);
         } else if !item.damage.is_empty() {
             println!("-> {} damage", item.damage);
+        } else if !item.healing.is_empty() {
+            println!("-> {} healing", item.healing);
         }
         index += 1;
     }
