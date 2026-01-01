@@ -3,7 +3,6 @@ use std::fs::{self, File, read_to_string};
 use std::io;
 use std::io::prelude::*;
 
-// #[derive(Serialize, Deserialize)]
 #[derive(Serialize, Deserialize)]
 struct Item {
     name: String,
@@ -11,6 +10,19 @@ struct Item {
     damage: String,
     healing: String,
     value: String,
+}
+
+#[derive(Serialize, Deserialize)]
+struct Money {
+    coin: String,
+    amount: i32,
+}
+
+impl Money {
+    fn edit_money(&mut self, amount: i32) {
+        println!("current amount: {}", self.amount);
+        self.amount += amount;
+    }
 }
 
 impl Item {
@@ -32,22 +44,27 @@ impl Item {
     }
 
     fn edit_name(&mut self) {
+        println!("old name: {}", self.name);
         self.name = String::from(get_input("enter a new name:").trim());
     }
 
     fn edit_description(&mut self) {
+        println!("old description: {}", self.description);
         self.description = String::from(get_input("enter a new description:").trim());
     }
 
     fn edit_damage(&mut self) {
+        println!("old damage: {}", self.damage);
         self.damage = String::from(get_input("enter a new damage number:").trim());
     }
 
     fn edit_healing(&mut self) {
+        println!("old healing: {}", self.healing);
         self.healing = String::from(get_input("enter a new healing amount:").trim());
     }
 
     fn edit_value(&mut self) {
+        println!("old value: {}", self.value);
         self.value = String::from(get_input("enter a new value:").trim());
     }
 }
@@ -68,10 +85,12 @@ impl Note {
     }
     fn edit_title(&mut self) {
         clear();
+        println!("old title: {}", self.title);
         self.title = String::from(get_input("enter a new title:").trim());
     }
     fn edit_body(&mut self) {
         clear();
+        println!("old body: {}", self.body);
         self.body = String::from(get_input("enter a new body:").trim());
     }
 }
@@ -161,7 +180,10 @@ fn print_items(inventory: &Vec<Item>) {
     for item in inventory {
         println!("{}. {}", index, item.name);
         if !item.damage.is_empty() && !item.healing.is_empty() && !item.value.is_empty() {
-            println!("-> {} damage, {} healing, value: {}", item.damage, item.healing, item.value);
+            println!(
+                "-> {} damage, {} healing, value: {}",
+                item.damage, item.healing, item.value
+            );
         } else if !item.healing.is_empty() && !item.value.is_empty() {
             println!("-> {} healing, value: {}", item.healing, item.value);
         } else if !item.damage.is_empty() && !item.value.is_empty() {
@@ -219,6 +241,27 @@ fn list_items(inventory: &mut Vec<Item>) {
     }
 }
 
+fn view_purse(purse: &mut Vec<Money>) {
+    loop {
+        let mut index = 1;
+        clear();
+        for coin in &*purse {
+            println!("{}. {}\n-> {}", index, coin.coin, coin.amount);
+            index += 1;
+        }
+
+        let action = get_action("enter 1 to edit money");
+        if action == 0 {
+            break;
+        } else if action == 1 {
+            let which = get_action("which coin type to edit?");
+            let which = which as usize;
+            let amount = get_action("enter money amount to add (negative if spending money):");
+            purse[which - 1].edit_money(amount);
+        }
+    }
+}
+
 fn add_item(inventory: &mut Vec<Item>) {
     clear();
     let name = get_input("enter the name of the item:");
@@ -265,7 +308,7 @@ fn open_save(path: &str) -> File {
     file
 }
 
-fn save_inventory(inventory: &mut Vec<Item>, save_file: &mut File) {
+fn save_inventory(inventory: &Vec<Item>, save_file: &mut File) {
     save_file.write(b"*exists*\n").expect("240 couldnt write");
     for item in inventory {
         let serialized = serde_json::to_string(item).expect("221 couldnt write");
@@ -277,7 +320,7 @@ fn save_inventory(inventory: &mut Vec<Item>, save_file: &mut File) {
     save_file.write(b"*end*\n").expect("225 couldnt write");
 }
 
-fn save_notebook(notebook: &mut Vec<Note>, save_file: &mut File) {
+fn save_notebook(notebook: &Vec<Note>, save_file: &mut File) {
     for note in notebook {
         let serialized = serde_json::to_string(note).expect("230 couldnt write");
         save_file
@@ -285,33 +328,52 @@ fn save_notebook(notebook: &mut Vec<Note>, save_file: &mut File) {
             .expect("231 couldnt write");
         save_file.write(b"\n").expect("232 couldnt write");
     }
+    save_file
+        .write(b"*end*\n")
+        .expect("notebook couldnt write end");
 }
 
-fn create_data(inventory: &mut Vec<Item>, notebook: &mut Vec<Note>, file_path: &str) {
-    let mut exists = false;
+fn save_purse(purse: &Vec<Money>, save_file: &mut File) {
+    for coin in purse {
+        let serialized = serde_json::to_string(coin).expect("purse couldnt serialize");
+        save_file
+            .write(serialized.as_bytes())
+            .expect("purse couldnt write");
+        save_file.write(b"\n").expect("purse couldnt write newline");
+    }
+}
+
+fn create_data(
+    inventory: &mut Vec<Item>,
+    notebook: &mut Vec<Note>,
+    purse: &mut Vec<Money>,
+    file_path: &str,
+) {
     let mut end = false;
+    let mut end2 = false;
     for line in read_to_string(file_path)
         .expect("could not read file when creating inventory")
         .lines()
     {
         if line == "*exists*" {
-            exists = true;
             continue;
         }
-        if !exists {
-            panic!("save corrupted! move \"DnD_save_old.json\" to \"DnD_save.json\"")
-        }
-
-        if line == "*end*" {
+        if line == "*end*" && end == true {
+            end2 = true;
+            continue;
+        } else if line == "*end*" {
             end = true;
             continue;
         }
         if !end {
-            let deserialized = serde_json::from_str(line).expect("could not deserialize");
+            let deserialized = serde_json::from_str(line).expect("inventory could not deserialize");
             inventory.push(deserialized);
-        } else {
-            let deserialized = serde_json::from_str(line).expect("could not deserialize");
+        } else if !end2 {
+            let deserialized = serde_json::from_str(line).expect("notebook could not deserialize");
             notebook.push(deserialized);
+        } else {
+            let deserialized = serde_json::from_str(line).expect("purse could not deserialize");
+            purse.push(deserialized);
         }
     }
 }
@@ -330,9 +392,10 @@ fn verify_data(file_path: &str) -> bool {
 
 fn main() {
     const SAVE_FILE_PATH: &str = "DnD_save.json";
-    const OPTIONS: &str = "please select an option:\n1. view inventory\n2. view notebook\n3. add item\n4. add note\n5. save and quit";
+    const OPTIONS: &str = "please select an option:\n1. view inventory\n2. view notebook\n3. view purse\n4. add item\n5. add note\n9. save and quit";
     let mut inventory: Vec<Item> = Vec::new();
     let mut notebook: Vec<Note> = Vec::new();
+    let mut purse: Vec<Money> = Vec::new();
     let mut save_file: File;
     let save_exists: bool = match fs::exists(SAVE_FILE_PATH) {
         Ok(true) => true,
@@ -344,9 +407,29 @@ fn main() {
         if !data_safe {
             panic!("save corrupted! move \"DnD_save_old.json\" to \"DnD_save.json\"");
         }
-        create_data(&mut inventory, &mut notebook, SAVE_FILE_PATH);
+        create_data(&mut inventory, &mut notebook, &mut purse, SAVE_FILE_PATH);
         save_file = open_save(SAVE_FILE_PATH);
     } else {
+        let platinum = Money {
+            coin: String::from("Platinum"),
+            amount: 0,
+        };
+        let gold = Money {
+            coin: String::from("Gold"),
+            amount: 0,
+        };
+        let silver = Money {
+            coin: String::from("Silver"),
+            amount: 0,
+        };
+        let copper = Money {
+            coin: String::from("Copper"),
+            amount: 0,
+        };
+        purse.push(platinum);
+        purse.push(gold);
+        purse.push(silver);
+        purse.push(copper);
         save_file = make_save();
     }
     loop {
@@ -357,12 +440,15 @@ fn main() {
         } else if action == 2 {
             view_notes(&mut notebook);
         } else if action == 3 {
-            add_item(&mut inventory);
+            view_purse(&mut purse);
         } else if action == 4 {
-            add_note(&mut notebook);
+            add_item(&mut inventory);
         } else if action == 5 {
-            save_inventory(&mut inventory, &mut save_file);
-            save_notebook(&mut notebook, &mut save_file);
+            add_note(&mut notebook);
+        } else if action == 9 {
+            save_inventory(&inventory, &mut save_file);
+            save_notebook(&notebook, &mut save_file);
+            save_purse(&purse, &mut save_file);
             println!("writing data..");
             wait();
             break;
