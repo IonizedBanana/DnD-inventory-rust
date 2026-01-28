@@ -3,6 +3,7 @@ use std::fs::{self, File, read_to_string};
 use std::io;
 use std::io::prelude::*;
 
+// structure for an item
 #[derive(Serialize, Deserialize)]
 struct Item {
     name: String,
@@ -12,12 +13,14 @@ struct Item {
     value: String,
 }
 
+// structure for money (gold, silver, copper)
 #[derive(Serialize, Deserialize)]
 struct Money {
     coin: String,
     amount: i32,
 }
 
+// functions for money
 impl Money {
     fn edit_money(&mut self, amount: i32) {
         println!("current amount: {}", self.amount);
@@ -25,6 +28,7 @@ impl Money {
     }
 }
 
+// functions for items
 impl Item {
     fn print(&self) {
         clear();
@@ -69,12 +73,14 @@ impl Item {
     }
 }
 
+// structure for notes
 #[derive(Serialize, Deserialize)]
 struct Note {
     title: String,
     body: String,
 }
 
+// functions for notes
 impl Note {
     fn print(&self) {
         clear();
@@ -95,14 +101,18 @@ impl Note {
     }
 }
 
+// function to pause output until user presses enter 
+// mostly so that i can clear output before printing stuff
 fn wait() {
     let _ = get_input("press enter to continue...");
 }
 
+// function to clear the output without just printing 1000 lines
 fn clear() {
     clearscreen::clear().expect("failed to clear screen!");
 }
 
+// function to get user input, returns a string
 fn get_input(message: &str) -> String {
     println!("{}", message);
     let mut input = String::new();
@@ -112,6 +122,8 @@ fn get_input(message: &str) -> String {
     input
 }
 
+// uses the get_input function, but returns an i32, useful 
+// to make a selection from a list in one action
 fn get_action(message: &str) -> i32 {
     loop {
         let input = get_input(message);
@@ -122,6 +134,7 @@ fn get_action(message: &str) -> i32 {
     }
 }
 
+// function to print a list of notes from a notebook
 fn print_notes(notebook: &Vec<Note>) {
     let mut index = 1;
     for note in &*notebook {
@@ -130,6 +143,8 @@ fn print_notes(notebook: &Vec<Note>) {
     }
 }
 
+// function to look at notes. also handles input for manipulating notes 
+// and viewing the main notes body
 fn view_notes(notebook: &mut Vec<Note>) {
     loop {
         clear();
@@ -163,6 +178,7 @@ fn view_notes(notebook: &mut Vec<Note>) {
     }
 }
 
+// function to create a note and add it to the notebook
 fn add_note(notebook: &mut Vec<Note>) {
     let title = get_input("please enter a title for the note:");
     let title = title.trim();
@@ -296,41 +312,41 @@ fn open_save(path: &str) -> File {
         Err(_) => false,
     };
     if save_exists {
-        fs::remove_file("DnD_save_old.json").expect("cant remove ts ah file");
+        fs::remove_file("DnD_save_old.json").expect("cant remove file");
     }
-    let old_contents = fs::read_to_string(path).expect("fuck you bitch");
-    let mut old_file = File::create("DnD_save_old.json").expect("221 cant create file");
+    let old_contents = fs::read_to_string(path).expect("could not read file");
+    let mut old_file = File::create("DnD_save_old.json").expect("cant create file");
     old_file
         .write(old_contents.as_bytes())
-        .expect("222 cabt write ts ah");
+        .expect("could not write file");
     fs::remove_file(path).expect("could not remove file");
     let file = make_save();
     file
 }
 
 fn save_inventory(inventory: &Vec<Item>, save_file: &mut File) {
-    save_file.write(b"*exists*\n").expect("240 couldnt write");
+    save_file.write(b"*exists*\n").expect("could not write to inventory save");
     for item in inventory {
-        let serialized = serde_json::to_string(item).expect("221 couldnt write");
+        let serialized = serde_json::to_string(item).expect("could not serialize inventory");
         save_file
             .write(serialized.as_bytes())
-            .expect("222 couldnt write");
-        save_file.write(b"\n").expect("223 couldnt write");
+            .expect("could not write serialized inventory");
+        save_file.write(b"\n").expect("could not write newline in inventory");
     }
-    save_file.write(b"*end*\n").expect("225 couldnt write");
+    save_file.write(b"*end*\n").expect("could not write end to inventory");
 }
 
 fn save_notebook(notebook: &Vec<Note>, save_file: &mut File) {
     for note in notebook {
-        let serialized = serde_json::to_string(note).expect("230 couldnt write");
+        let serialized = serde_json::to_string(note).expect("could not serialize notebook");
         save_file
             .write(serialized.as_bytes())
-            .expect("231 couldnt write");
-        save_file.write(b"\n").expect("232 couldnt write");
+            .expect("could not write notebook");
+        save_file.write(b"\n").expect("could not write newline in notebook");
     }
     save_file
         .write(b"*end*\n")
-        .expect("notebook couldnt write end");
+        .expect("could not write end in notebook");
 }
 
 fn save_purse(purse: &Vec<Money>, save_file: &mut File) {
