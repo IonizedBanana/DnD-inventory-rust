@@ -104,6 +104,9 @@ impl Note {
 // function to pause output until user presses enter 
 // mostly so that i can clear output before printing stuff
 fn wait() {
+    // _ var name just means im not using whatever value 
+    // get_input returns, doing this makes the compiler not 
+    // yell at me
     let _ = get_input("press enter to continue...");
 }
 
@@ -123,7 +126,7 @@ fn get_input(message: &str) -> String {
 }
 
 // uses the get_input function, but returns an i32, useful 
-// to make a selection from a list in one action
+// to make a selection from a list in one function call
 fn get_action(message: &str) -> i32 {
     loop {
         let input = get_input(message);
@@ -136,6 +139,9 @@ fn get_action(message: &str) -> i32 {
 
 // function to print a list of notes from a notebook
 fn print_notes(notebook: &Vec<Note>) {
+    // probably a better way to do the loop 
+    // so i dont have to manually track the index, 
+    // but the pointer is useful, so
     let mut index = 1;
     for note in &*notebook {
         println!("{}. {}", index, note.title);
@@ -191,6 +197,7 @@ fn add_note(notebook: &mut Vec<Note>) {
     notebook.push(note);
 }
 
+// lists all the items in the inventory
 fn print_items(inventory: &Vec<Item>) {
     let mut index = 1;
     for item in inventory {
@@ -215,6 +222,7 @@ fn print_items(inventory: &Vec<Item>) {
     }
 }
 
+// uses the above function to list the items, this function handles the inputs 
 fn list_items(inventory: &mut Vec<Item>) {
     loop {
         clear();
@@ -257,6 +265,7 @@ fn list_items(inventory: &mut Vec<Item>) {
     }
 }
 
+// function to view the purse, also handles input
 fn view_purse(purse: &mut Vec<Money>) {
     loop {
         let mut index = 1;
@@ -300,11 +309,15 @@ fn add_item(inventory: &mut Vec<Item>) {
     inventory.push(item);
 }
 
+// creates a file at the specified path 
+// I need to change this to take the const I set in the main loop
 fn make_save() -> File {
     let save_file = File::create("DnD_save.json").expect("Could not make file!");
     save_file
 }
 
+// swaps the new save for the old save, and blanks the new save 
+// in order to be ready to save later
 fn open_save(path: &str) -> File {
     let save_exists: bool = match fs::exists("DnD_save_old.json") {
         Ok(true) => true,
@@ -324,6 +337,7 @@ fn open_save(path: &str) -> File {
     file
 }
 
+// following 3 functions deserialize each vec and write to the save file
 fn save_inventory(inventory: &Vec<Item>, save_file: &mut File) {
     save_file.write(b"*exists*\n").expect("could not write to inventory save");
     for item in inventory {
@@ -359,6 +373,7 @@ fn save_purse(purse: &Vec<Money>, save_file: &mut File) {
     }
 }
 
+// reads the save file and populates the vecs
 fn create_data(
     inventory: &mut Vec<Item>,
     notebook: &mut Vec<Note>,
@@ -394,6 +409,9 @@ fn create_data(
     }
 }
 
+// checking if the save file is valid 
+// i tried to do this in the main function but it didnt work 
+// works here tho :shrug:
 fn verify_data(file_path: &str) -> bool {
     for line in read_to_string(file_path)
         .expect("could not read file when creating inventory")
@@ -407,18 +425,22 @@ fn verify_data(file_path: &str) -> bool {
 }
 
 fn main() {
+    // two constants so I can change these without refactoring half my code
     const SAVE_FILE_PATH: &str = "DnD_save.json";
     const OPTIONS: &str = "please select an option:\n1. view inventory\n2. view notebook\n3. view purse\n4. add item\n5. add note\n9. save and quit";
+    // creating the vecs that i need, and initializing the save_file var
     let mut inventory: Vec<Item> = Vec::new();
     let mut notebook: Vec<Note> = Vec::new();
     let mut purse: Vec<Money> = Vec::new();
     let mut save_file: File;
+    // checking if the save exists
     let save_exists: bool = match fs::exists(SAVE_FILE_PATH) {
         Ok(true) => true,
         Ok(false) => false,
         Err(_) => false,
     };
     if save_exists {
+        // making sure the save is valid, panicing if not and loading the save data if so
         let data_safe = verify_data(SAVE_FILE_PATH);
         if !data_safe {
             panic!("save corrupted! move \"DnD_save_old.json\" to \"DnD_save.json\"");
@@ -426,6 +448,8 @@ fn main() {
         create_data(&mut inventory, &mut notebook, &mut purse, SAVE_FILE_PATH);
         save_file = open_save(SAVE_FILE_PATH);
     } else {
+        // setting default data and creating a blank save if one doesnt exist
+        // probably could be in its own function tbh
         let platinum = Money {
             coin: String::from("Platinum"),
             amount: 0,
@@ -449,6 +473,7 @@ fn main() {
         save_file = make_save();
     }
     loop {
+        // main loop for the program
         clear();
         let action = get_action(OPTIONS);
         if action == 1 {
@@ -465,10 +490,13 @@ fn main() {
             save_inventory(&inventory, &mut save_file);
             save_notebook(&notebook, &mut save_file);
             save_purse(&purse, &mut save_file);
+            // this is just here so its obvious that it worked
             println!("writing data..");
             wait();
             break;
         } else {
+            // if the user inputs literally anything besies the actions listed the loop just
+            // continues
             continue;
         }
     }
