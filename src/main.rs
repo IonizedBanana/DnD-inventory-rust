@@ -11,6 +11,17 @@ enum SaveState {
     Potion,
 }
 
+impl SaveState {
+    fn next(&self) -> SaveState {
+        match *self {
+            SaveState::Inventory => SaveState::Notebook,
+            SaveState::Notebook => SaveState::Purse,
+            SaveState::Purse => SaveState::Potion,
+            SaveState::Potion => SaveState::Inventory,
+        }
+    }
+}
+
 enum ProgramState {
     MainMenu,
     InvMenu,
@@ -132,14 +143,6 @@ struct Potion {
 }
 // TODO: finish this
 impl Potion {
-    fn print(&self) {
-        clear();
-        println!(
-            "name:\n{}\neffect:\n{}\namount: {}x",
-            self.name, self.effect, self.amount
-        );
-        wait();
-    }
     fn edit_amount(&mut self) {
         println!("old amount: {}", self.amount);
         loop {
@@ -154,6 +157,14 @@ impl Potion {
                 println!("invalid amount!")
             }
         }
+    }
+    fn print(&self) {
+        clear();
+        println!(
+            "name:\n{}\neffect:\n{}\namount: {}x",
+            self.name, self.effect, self.amount
+        );
+        wait();
     }
     fn edit_name(&mut self) {
         println!("old name: {}", self.name);
@@ -521,9 +532,7 @@ fn create_data(
     potion_bag: &mut Vec<Potion>,
     file_path: &str,
 ) {
-    let mut end = false;
-    let mut end2 = false;
-    let mut end3 = false;
+    let mut state = SaveState::Inventory;
     for line in read_to_string(file_path)
         .expect("could not read file when creating inventory")
         .lines()
@@ -531,29 +540,31 @@ fn create_data(
         if line == "*exists*" {
             continue;
         }
-        if line == "*end*" && end == true && end2 == true {
-            end3 = true;
-            continue;
-        } else if line == "*end*" && end == true {
-            end2 = true;
-            continue;
-        } else if line == "*end*" {
-            end = true;
+        if line == "*end*" {
+            state = state.next();
             continue;
         }
-        if !end {
-            let deserialized = serde_json::from_str(line).expect("inventory could not deserialize");
-            inventory.push(deserialized);
-        } else if !end2 {
-            let deserialized = serde_json::from_str(line).expect("notebook could not deserialize");
-            notebook.push(deserialized);
-        } else if !end3 {
-            let deserialized = serde_json::from_str(line).expect("purse could not deserialize");
-            purse.push(deserialized);
-        } else {
-            let deserialized =
-                serde_json::from_str(line).expect("potion_bag could not deserialize");
-            potion_bag.push(deserialized);
+
+        match &state {
+            SaveState::Inventory => {
+                let deserialized =
+                    serde_json::from_str(line).expect("inventory could not deserialize");
+                inventory.push(deserialized);
+            }
+            SaveState::Notebook => {
+                let deserialized =
+                    serde_json::from_str(line).expect("notebook could not deserialize");
+                notebook.push(deserialized);
+            }
+            SaveState::Purse => {
+                let deserialized = serde_json::from_str(line).expect("purse could not deserialize");
+                purse.push(deserialized);
+            }
+            SaveState::Potion => {
+                let deserialized =
+                    serde_json::from_str(line).expect("potion_bag could not deserialize");
+                potion_bag.push(deserialized);
+            }
         }
     }
 }
@@ -611,19 +622,19 @@ fn main() {
         // setting default data and creating a blank save if one doesnt exist
         // probably could be in its own function tbh
         let platinum = Money {
-            coin: String::from("Platinum"),
+            coin: MoneyType::Platium,
             amount: 0,
         };
         let gold = Money {
-            coin: String::from("Gold"),
+            coin: MoneyType::Gold,
             amount: 0,
         };
         let silver = Money {
-            coin: String::from("Silver"),
+            coin: MoneyType::Silver,
             amount: 0,
         };
         let copper = Money {
-            coin: String::from("Copper"),
+            coin: MoneyType::Copper,
             amount: 0,
         };
         purse.push(platinum);
