@@ -3,6 +3,22 @@ use std::fs::{self, File, read_to_string};
 use std::io;
 use std::io::prelude::*;
 
+// some enums to represent states
+enum SaveState {
+    Inventory,
+    Notebook,
+    Purse,
+    Potion,
+}
+
+enum ProgramState {
+    MainMenu,
+    InvMenu,
+    NoteMenu,
+    PurseMenu,
+    PotionMenu,
+}
+
 // structure for an item
 #[derive(Serialize, Deserialize)]
 struct Item {
@@ -16,8 +32,15 @@ struct Item {
 // structure for money (gold, silver, copper)
 #[derive(Serialize, Deserialize)]
 struct Money {
-    coin: String,
+    coin: MoneyType,
     amount: i32,
+}
+#[derive(Serialize, Deserialize, Debug)]
+enum MoneyType {
+    Copper,
+    Silver,
+    Gold,
+    Platium,
 }
 
 // functions for money
@@ -101,11 +124,52 @@ impl Note {
     }
 }
 
-// function to pause output until user presses enter 
+#[derive(Serialize, Deserialize)]
+struct Potion {
+    name: String,
+    effect: String,
+    amount: u32,
+}
+// TODO: finish this
+impl Potion {
+    fn print(&self) {
+        clear();
+        println!(
+            "name:\n{}\neffect:\n{}\namount: {}x",
+            self.name, self.effect, self.amount
+        );
+        wait();
+    }
+    fn edit_amount(&mut self) {
+        println!("old amount: {}", self.amount);
+        loop {
+            let change_amount = get_action("enter amount changed (+n to add, -n to remove)");
+            // this is disgusting. I could make amount an i32 but it doesnt need to be
+            // so I type cast like 4 times to check for a valid number and assign
+            let signed_amt = self.amount as i32;
+            if (signed_amt + change_amount) >= 0 {
+                self.amount = (signed_amt + change_amount) as u32;
+                break;
+            } else {
+                println!("invalid amount!")
+            }
+        }
+    }
+    fn edit_name(&mut self) {
+        println!("old name: {}", self.name);
+        self.name = get_input("enter a new name:")
+    }
+    fn edit_effect(&mut self) {
+        println!("old effect: {}", self.effect);
+        self.effect = get_input("enter a new effect:");
+    }
+}
+
+// function to pause output until user presses enter
 // mostly so that i can clear output before printing stuff
 fn wait() {
-    // _ var name just means im not using whatever value 
-    // get_input returns, doing this makes the compiler not 
+    // _ var name just means im not using whatever value
+    // get_input returns, doing this makes the compiler not
     // yell at me
     let _ = get_input("press enter to continue...");
 }
@@ -125,7 +189,7 @@ fn get_input(message: &str) -> String {
     input
 }
 
-// uses the get_input function, but returns an i32, useful 
+// uses the get_input function, but returns an i32, useful
 // to make a selection from a list in one function call
 fn get_action(message: &str) -> i32 {
     loop {
@@ -139,17 +203,17 @@ fn get_action(message: &str) -> i32 {
 
 // function to print a list of notes from a notebook
 fn print_notes(notebook: &Vec<Note>) {
-    // probably a better way to do the loop 
-    // so i dont have to manually track the index, 
+    // probably a better way to do the loop
+    // so i dont have to manually track the index,
     // but the pointer is useful, so
     let mut index = 1;
-    for note in &*notebook {
+    for note in notebook {
         println!("{}. {}", index, note.title);
         index += 1;
     }
 }
 
-// function to look at notes. also handles input for manipulating notes 
+// function to look at notes. also handles input for manipulating notes
 // and viewing the main notes body
 fn view_notes(notebook: &mut Vec<Note>) {
     loop {
@@ -222,7 +286,7 @@ fn print_items(inventory: &Vec<Item>) {
     }
 }
 
-// uses the above function to list the items, this function handles the inputs 
+// uses the above function to list the items, this function handles the inputs
 fn list_items(inventory: &mut Vec<Item>) {
     loop {
         clear();
@@ -271,7 +335,7 @@ fn view_purse(purse: &mut Vec<Money>) {
         let mut index = 1;
         clear();
         for coin in &*purse {
-            println!("{}. {}\n-> {}", index, coin.coin, coin.amount);
+            println!("{}. {:?}\n-> {}", index, coin.coin, coin.amount);
             index += 1;
         }
 
@@ -309,45 +373,104 @@ fn add_item(inventory: &mut Vec<Item>) {
     inventory.push(item);
 }
 
-// creates a file at the specified path 
+fn add_potion(potion_bag: &mut Vec<Potion>) {
+    clear();
+    let name = get_input("enter the name of the potion:");
+    let name = name.trim();
+    let effect = get_input("enter the effect of the potion:");
+    let effect = effect.trim();
+    // mut so I can type cast, declaring outside the loop
+    let mut amount: i32;
+    loop {
+        amount = get_action("enter the amount of them you have:");
+        // making sure amount is a valid number
+        if amount > 0 {
+            break;
+        } else {
+            println!("invalid amount");
+        }
+    }
+    let potion = Potion {
+        name: String::from(name),
+        effect: String::from(effect),
+        amount: amount as u32,
+    };
+    potion_bag.push(potion);
+}
+fn print_potions(potion_bag: &Vec<Potion>) {
+    clear();
+    let mut index = 1;
+    for p in &*potion_bag {
+        println!("{}. {} ({}x)", index, p.name, p.amount);
+        index += 1;
+    }
+}
+
+fn view_potion_bag(potion_bag: &mut Vec<Potion>) {
+    loop {
+        print_potions(&potion_bag);
+        let action = get_action(
+            "which potion would you like to view? -1 to edit -2 to remove, -3 to edit amount",
+        );
+        if action == 0 {
+            break;
+        } else if action == -1 {
+            print_potions(&potion_bag);
+            let which = get_action("which potion would you like to edit?");
+            let which_field = get_action("which field would you like to edit?\n1. name\n2. effect");
+            if which_field == 1 {
+                potion_bag[(which as usize) - 1].edit_name();
+            } else if which_field == 2 {
+                potion_bag[(which as usize) - 1].edit_effect();
+            }
+        } else if action == -2 {
+            let which = get_action("which potion would you like to remove?");
+            potion_bag.remove((which as usize) - 1);
+        } else if action == -3 {
+            let which = get_action("which potion would you like to edit?");
+            potion_bag[(which as usize) - 1].edit_amount();
+        } else {
+            potion_bag[(action as usize) - 1].print();
+        }
+    }
+}
+
+// creates a file at the specified path
 // I need to change this to take the const I set in the main loop
-fn make_save() -> File {
-    let save_file = File::create("DnD_save.json").expect("Could not make file!");
+fn make_save(path: &str) -> File {
+    let save_file = File::create(path).expect("Could not make file!");
     save_file
 }
 
-// swaps the new save for the old save, and blanks the new save 
-// in order to be ready to save later
-fn open_save(path: &str) -> File {
-    let save_exists: bool = match fs::exists("DnD_save_old.json") {
-        Ok(true) => true,
-        Ok(false) => false,
-        Err(_) => false,
-    };
-    if save_exists {
-        fs::remove_file("DnD_save_old.json").expect("cant remove file");
-    }
-    let old_contents = fs::read_to_string(path).expect("could not read file");
-    let mut old_file = File::create("DnD_save_old.json").expect("cant create file");
-    old_file
-        .write(old_contents.as_bytes())
-        .expect("could not write file");
-    fs::remove_file(path).expect("could not remove file");
-    let file = make_save();
+// copies the current save into the old save file
+// this overwrites the old save. then we delete the current save
+// and make a new file
+fn open_save(curr_path: &str, old_path: &str) -> File {
+    // has to be a var because fs::copy returns how many bytes were
+    // written
+    let _result = fs::copy(curr_path, old_path);
+    fs::remove_file(curr_path).expect("could not remove file");
+    let file = make_save(curr_path);
     file
 }
 
 // following 3 functions deserialize each vec and write to the save file
 fn save_inventory(inventory: &Vec<Item>, save_file: &mut File) {
-    save_file.write(b"*exists*\n").expect("could not write to inventory save");
+    save_file
+        .write(b"*exists*\n")
+        .expect("could not write to inventory save");
     for item in inventory {
         let serialized = serde_json::to_string(item).expect("could not serialize inventory");
         save_file
             .write(serialized.as_bytes())
             .expect("could not write serialized inventory");
-        save_file.write(b"\n").expect("could not write newline in inventory");
+        save_file
+            .write(b"\n")
+            .expect("could not write newline in inventory");
     }
-    save_file.write(b"*end*\n").expect("could not write end to inventory");
+    save_file
+        .write(b"*end*\n")
+        .expect("could not write end to inventory");
 }
 
 fn save_notebook(notebook: &Vec<Note>, save_file: &mut File) {
@@ -356,7 +479,9 @@ fn save_notebook(notebook: &Vec<Note>, save_file: &mut File) {
         save_file
             .write(serialized.as_bytes())
             .expect("could not write notebook");
-        save_file.write(b"\n").expect("could not write newline in notebook");
+        save_file
+            .write(b"\n")
+            .expect("could not write newline in notebook");
     }
     save_file
         .write(b"*end*\n")
@@ -371,6 +496,21 @@ fn save_purse(purse: &Vec<Money>, save_file: &mut File) {
             .expect("purse couldnt write");
         save_file.write(b"\n").expect("purse couldnt write newline");
     }
+    save_file
+        .write(b"*end*\n")
+        .expect("purse couldnt write *end*");
+}
+
+fn save_potions(potion_bag: &Vec<Potion>, save_file: &mut File) {
+    for p in potion_bag {
+        let serialized = serde_json::to_string(p).expect("potion bag could not serialize");
+        save_file
+            .write(serialized.as_bytes())
+            .expect("potion bag couldnt write");
+        save_file
+            .write(b"\n")
+            .expect("potion bag couldnt write newline");
+    }
 }
 
 // reads the save file and populates the vecs
@@ -378,10 +518,12 @@ fn create_data(
     inventory: &mut Vec<Item>,
     notebook: &mut Vec<Note>,
     purse: &mut Vec<Money>,
+    potion_bag: &mut Vec<Potion>,
     file_path: &str,
 ) {
     let mut end = false;
     let mut end2 = false;
+    let mut end3 = false;
     for line in read_to_string(file_path)
         .expect("could not read file when creating inventory")
         .lines()
@@ -389,7 +531,10 @@ fn create_data(
         if line == "*exists*" {
             continue;
         }
-        if line == "*end*" && end == true {
+        if line == "*end*" && end == true && end2 == true {
+            end3 = true;
+            continue;
+        } else if line == "*end*" && end == true {
             end2 = true;
             continue;
         } else if line == "*end*" {
@@ -402,15 +547,19 @@ fn create_data(
         } else if !end2 {
             let deserialized = serde_json::from_str(line).expect("notebook could not deserialize");
             notebook.push(deserialized);
-        } else {
+        } else if !end3 {
             let deserialized = serde_json::from_str(line).expect("purse could not deserialize");
             purse.push(deserialized);
+        } else {
+            let deserialized =
+                serde_json::from_str(line).expect("potion_bag could not deserialize");
+            potion_bag.push(deserialized);
         }
     }
 }
 
-// checking if the save file is valid 
-// i tried to do this in the main function but it didnt work 
+// checking if the save file is valid
+// i tried to do this in the main function but it didnt work
 // works here tho :shrug:
 fn verify_data(file_path: &str) -> bool {
     for line in read_to_string(file_path)
@@ -427,12 +576,17 @@ fn verify_data(file_path: &str) -> bool {
 fn main() {
     // two constants so I can change these without refactoring half my code
     const SAVE_FILE_PATH: &str = "DnD_save.json";
-    const OPTIONS: &str = "please select an option:\n1. view inventory\n2. view notebook\n3. view purse\n4. add item\n5. add note\n9. save and quit";
+    const OLD_SAVE_PATH: &str = "DnD_save_old.json";
+    const OPTIONS: &str = "please select an option:\n1. view inventory\n2. view notebook\n3. view purse\n4. view potion bag\n5. add item\n6. add note\n7. add potion\n9. save and quit";
+    let menu_state = ProgramState::MainMenu;
+
     // creating the vecs that i need, and initializing the save_file var
     let mut inventory: Vec<Item> = Vec::new();
     let mut notebook: Vec<Note> = Vec::new();
     let mut purse: Vec<Money> = Vec::new();
+    let mut potion_bag: Vec<Potion> = Vec::new();
     let mut save_file: File;
+
     // checking if the save exists
     let save_exists: bool = match fs::exists(SAVE_FILE_PATH) {
         Ok(true) => true,
@@ -445,8 +599,14 @@ fn main() {
         if !data_safe {
             panic!("save corrupted! move \"DnD_save_old.json\" to \"DnD_save.json\"");
         }
-        create_data(&mut inventory, &mut notebook, &mut purse, SAVE_FILE_PATH);
-        save_file = open_save(SAVE_FILE_PATH);
+        create_data(
+            &mut inventory,
+            &mut notebook,
+            &mut purse,
+            &mut potion_bag,
+            SAVE_FILE_PATH,
+        );
+        save_file = open_save(SAVE_FILE_PATH, OLD_SAVE_PATH);
     } else {
         // setting default data and creating a blank save if one doesnt exist
         // probably could be in its own function tbh
@@ -470,7 +630,7 @@ fn main() {
         purse.push(gold);
         purse.push(silver);
         purse.push(copper);
-        save_file = make_save();
+        save_file = make_save(SAVE_FILE_PATH);
     }
     loop {
         // main loop for the program
@@ -483,13 +643,18 @@ fn main() {
         } else if action == 3 {
             view_purse(&mut purse);
         } else if action == 4 {
-            add_item(&mut inventory);
+            view_potion_bag(&mut potion_bag);
         } else if action == 5 {
+            add_item(&mut inventory);
+        } else if action == 6 {
             add_note(&mut notebook);
+        } else if action == 7 {
+            add_potion(&mut potion_bag);
         } else if action == 9 {
             save_inventory(&inventory, &mut save_file);
             save_notebook(&notebook, &mut save_file);
             save_purse(&purse, &mut save_file);
+            save_potions(&potion_bag, &mut save_file);
             // this is just here so its obvious that it worked
             println!("writing data..");
             wait();
