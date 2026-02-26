@@ -447,23 +447,16 @@ fn view_potion_bag(potion_bag: &mut Vec<Potion>) {
 }
 
 // creates a file at the specified path
-// I need to change this to take the const I set in the main loop
 fn make_save(path: &str) -> File {
     let save_file = File::create(path).expect("Could not make file!");
     save_file
 }
 
-// copies the current save into the old save file
-// this overwrites the old save. then we delete the current save
-// and make a new file
-fn open_save(curr_path: &str, old_path: &str) -> File {
-    // has to be a var because fs::copy returns how many bytes were
-    // written
-    let _result = fs::copy(curr_path, old_path);
-    fs::remove_file(curr_path).expect("could not remove file");
-    let file = make_save(curr_path);
-    file
-}
+// TODO I want to try to combine these somehow, but I dont want to have to refactor the function
+// with every new inventory menu. if I combine them as is, I'd have to fix the required args, every
+// reference to the function, and then add the logic. doable, but seems like more work than making
+// one new function and adding an extra function call to my saving option. 
+// figure this out sometime
 
 // following 3 functions deserialize each vec and write to the save file
 fn save_inventory(inventory: &Vec<Item>, save_file: &mut File) {
@@ -569,6 +562,13 @@ fn create_data(
     }
 }
 
+// writes the contents of the temp save to the real save path 
+// fs::copy overwrites, so no duplicate data can be written
+fn write_save(temp: &str, path: &str){
+    let _result = fs::copy(temp, path);
+    let _rm_result = fs::remove_file(temp);
+}
+
 // checking if the save file is valid
 // i tried to do this in the main function but it didnt work
 // works here tho :shrug:
@@ -584,10 +584,36 @@ fn verify_data(file_path: &str) -> bool {
     false
 }
 
+fn make_default(purse: &mut Vec<Money>, path: &str) -> File {
+    let platinum = Money {
+        coin: MoneyType::Platium,
+        amount: 0,
+    };
+    let gold = Money {
+        coin: MoneyType::Gold,
+        amount: 0,
+    };
+    let silver = Money {
+        coin: MoneyType::Silver,
+        amount: 0,
+    };
+    let copper = Money {
+        coin: MoneyType::Copper,
+        amount: 0,
+    };
+    purse.push(platinum);
+    purse.push(gold);
+    purse.push(silver);
+    purse.push(copper);
+    let save_file = make_save(path);
+    save_file
+}
+
 fn main() {
     // two constants so I can change these without refactoring half my code
     const SAVE_FILE_PATH: &str = "DnD_save.json";
-    const OLD_SAVE_PATH: &str = "DnD_save_old.json";
+    // const OLD_SAVE_PATH: &str = "DnD_save_old.json";
+    const TEMP_SAVE_PATH: &str = "temp_save.json";
     const OPTIONS: &str = "please select an option:\n1. view inventory\n2. view notebook\n3. view purse\n4. view potion bag\n5. add item\n6. add note\n7. add potion\n9. save and quit";
     let menu_state = ProgramState::MainMenu;
 
@@ -617,31 +643,9 @@ fn main() {
             &mut potion_bag,
             SAVE_FILE_PATH,
         );
-        save_file = open_save(SAVE_FILE_PATH, OLD_SAVE_PATH);
+        save_file = make_save(TEMP_SAVE_PATH);
     } else {
-        // setting default data and creating a blank save if one doesnt exist
-        // probably could be in its own function tbh
-        let platinum = Money {
-            coin: MoneyType::Platium,
-            amount: 0,
-        };
-        let gold = Money {
-            coin: MoneyType::Gold,
-            amount: 0,
-        };
-        let silver = Money {
-            coin: MoneyType::Silver,
-            amount: 0,
-        };
-        let copper = Money {
-            coin: MoneyType::Copper,
-            amount: 0,
-        };
-        purse.push(platinum);
-        purse.push(gold);
-        purse.push(silver);
-        purse.push(copper);
-        save_file = make_save(SAVE_FILE_PATH);
+        save_file = make_default(&mut purse, SAVE_FILE_PATH);
     }
     loop {
         // main loop for the program
@@ -666,6 +670,7 @@ fn main() {
             save_notebook(&notebook, &mut save_file);
             save_purse(&purse, &mut save_file);
             save_potions(&potion_bag, &mut save_file);
+            write_save(TEMP_SAVE_PATH, SAVE_FILE_PATH);
             // this is just here so its obvious that it worked
             println!("writing data..");
             wait();
