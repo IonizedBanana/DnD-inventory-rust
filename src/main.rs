@@ -30,6 +30,31 @@ enum ProgramState {
     PotionMenu,
 }
 
+enum PrintState {
+    Arrow,
+    Comma,
+}
+
+impl PrintState {
+    fn next(&self) -> PrintState {
+        match *self {
+            PrintState::Arrow => PrintState::Comma,
+            PrintState::Comma => PrintState::Comma,
+        }
+    }
+}
+
+fn format_print(print_state: &PrintState) {
+    match print_state {
+        PrintState::Arrow => {
+            print!("-> ");
+        }
+        PrintState::Comma => {
+            print!(", ");
+        }
+    }
+}
+
 // structure for an item
 #[derive(Serialize, Deserialize)]
 struct Item {
@@ -277,21 +302,28 @@ fn print_items(inventory: &Vec<Item>) {
     let mut index = 1;
     for item in inventory {
         println!("{}. {}", index, item.name);
-        if !item.damage.is_empty() && !item.healing.is_empty() && !item.value.is_empty() {
-            println!(
-                "-> {} damage, {} healing, value: {}",
-                item.damage, item.healing, item.value
-            );
-        } else if !item.healing.is_empty() && !item.value.is_empty() {
-            println!("-> {} healing, value: {}", item.healing, item.value);
-        } else if !item.damage.is_empty() && !item.value.is_empty() {
-            println!("-> {} damage, value: {}", item.damage, item.value);
-        } else if !item.value.is_empty() {
-            println!("-> value: {}", item.value);
-        } else if !item.damage.is_empty() {
-            println!("-> {} damage", item.damage);
-        } else if !item.healing.is_empty() {
-            println!("-> {} healing", item.healing);
+        let mut print_state = PrintState::Arrow;
+
+        if !item.damage.is_empty() {
+            format_print(&print_state);
+            print!("{} damage", item.damage);
+            print_state = print_state.next();
+        }
+        if !item.healing.is_empty() {
+            format_print(&print_state);
+            print!("{} healing", item.healing);
+            print_state = print_state.next();
+        }
+        if !item.value.is_empty() {
+            format_print(&print_state);
+            print!("value: {}", item.value);
+            print_state = print_state.next();
+        }
+        match print_state {
+            PrintState::Arrow => {}
+            PrintState::Comma => {
+                print!("\n");
+            }
         }
         index += 1;
     }
@@ -455,7 +487,7 @@ fn make_save(path: &str) -> File {
 // TODO I want to try to combine these somehow, but I dont want to have to refactor the function
 // with every new inventory menu. if I combine them as is, I'd have to fix the required args, every
 // reference to the function, and then add the logic. doable, but seems like more work than making
-// one new function and adding an extra function call to my saving option. 
+// one new function and adding an extra function call to my saving option.
 // figure this out sometime
 
 // following 3 functions deserialize each vec and write to the save file
@@ -562,9 +594,9 @@ fn create_data(
     }
 }
 
-// writes the contents of the temp save to the real save path 
+// writes the contents of the temp save to the real save path
 // fs::copy overwrites, so no duplicate data can be written
-fn write_save(temp: &str, path: &str){
+fn write_save(temp: &str, path: &str) {
     let _result = fs::copy(temp, path);
     let _rm_result = fs::remove_file(temp);
 }
