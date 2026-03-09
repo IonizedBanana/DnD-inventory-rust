@@ -9,6 +9,7 @@ enum SaveState {
     Notebook,
     Purse,
     Potion,
+    None,
 }
 
 impl SaveState {
@@ -17,13 +18,14 @@ impl SaveState {
             SaveState::Inventory => SaveState::Notebook,
             SaveState::Notebook => SaveState::Purse,
             SaveState::Purse => SaveState::Potion,
-            SaveState::Potion => SaveState::Inventory,
+            SaveState::Potion => SaveState::None,
+            SaveState::None => SaveState::None,
         }
     }
 }
 
 enum ProgramState {
-    MainMenu,
+    None,
     InvMenu,
     NoteMenu,
     PurseMenu,
@@ -42,15 +44,15 @@ impl PrintState {
             PrintState::Comma => PrintState::Comma,
         }
     }
-}
 
-fn format_print(print_state: &PrintState) {
-    match print_state {
-        PrintState::Arrow => {
-            print!("-> ");
-        }
-        PrintState::Comma => {
-            print!(", ");
+    fn format_print(&self) {
+        match *self {
+            PrintState::Arrow => {
+                print!("-> ");
+            }
+            PrintState::Comma => {
+                print!(", ");
+            }
         }
     }
 }
@@ -76,7 +78,7 @@ enum MoneyType {
     Copper,
     Silver,
     Gold,
-    Platium,
+    Platinum,
 }
 
 // functions for money
@@ -166,14 +168,12 @@ struct Potion {
     effect: String,
     amount: u32,
 }
-// TODO: finish this
+
 impl Potion {
     fn edit_amount(&mut self) {
         println!("old amount: {}", self.amount);
         loop {
             let change_amount = get_action("enter amount changed (+n to add, -n to remove)");
-            // this is disgusting. I could make amount an i32 but it doesnt need to be
-            // so I type cast like 4 times to check for a valid number and assign
             let signed_amt = self.amount as i32;
             if (signed_amt + change_amount) >= 0 {
                 self.amount = (signed_amt + change_amount) as u32;
@@ -183,6 +183,11 @@ impl Potion {
             }
         }
     }
+
+    fn use_potion(&mut self) {
+        self.amount = self.amount - 1;
+    }
+
     fn print(&self) {
         clear();
         println!(
@@ -276,6 +281,10 @@ fn view_notes(notebook: &mut Vec<Note>) {
             let which = get_action("which note do you want to remove?");
             let which = which as usize;
             notebook.remove(which - 1);
+        } else if input as usize > notebook.len() {
+            println!("invalid index");
+            wait();
+            continue;
         } else {
             let input = input as usize;
             notebook[input - 1].print();
@@ -286,6 +295,7 @@ fn view_notes(notebook: &mut Vec<Note>) {
 
 // function to create a note and add it to the notebook
 fn add_note(notebook: &mut Vec<Note>) {
+    clear();
     let title = get_input("please enter a title for the note:");
     let title = title.trim();
     let body = get_input("please enter the body of the note:");
@@ -305,17 +315,17 @@ fn print_items(inventory: &Vec<Item>) {
         let mut print_state = PrintState::Arrow;
 
         if !item.damage.is_empty() {
-            format_print(&print_state);
+            print_state.format_print();
             print!("{} damage", item.damage);
             print_state = print_state.next();
         }
         if !item.healing.is_empty() {
-            format_print(&print_state);
+            print_state.format_print();
             print!("{} healing", item.healing);
             print_state = print_state.next();
         }
         if !item.value.is_empty() {
-            format_print(&print_state);
+            print_state.format_print();
             print!("value: {}", item.value);
             print_state = print_state.next();
         }
@@ -330,7 +340,7 @@ fn print_items(inventory: &Vec<Item>) {
 }
 
 // uses the above function to list the items, this function handles the inputs
-fn list_items(inventory: &mut Vec<Item>) {
+fn view_inv(inventory: &mut Vec<Item>) {
     loop {
         clear();
         print_items(&inventory);
@@ -364,6 +374,10 @@ fn list_items(inventory: &mut Vec<Item>) {
             let which = get_action("which item do you want to remove?");
             let which = which as usize;
             inventory.remove(which - 1);
+        } else if input as usize > inventory.len() {
+            println!("invalid index");
+            wait();
+            continue;
         } else {
             let input = input as usize;
             inventory[input - 1].print();
@@ -390,6 +404,8 @@ fn view_purse(purse: &mut Vec<Money>) {
             let which = which as usize;
             let amount = get_action("enter money amount to add (negative if spending money):");
             purse[which - 1].edit_money(amount);
+        } else {
+            continue;
         }
     }
 }
@@ -440,6 +456,7 @@ fn add_potion(potion_bag: &mut Vec<Potion>) {
     };
     potion_bag.push(potion);
 }
+
 fn print_potions(potion_bag: &Vec<Potion>) {
     clear();
     let mut index = 1;
@@ -452,12 +469,12 @@ fn print_potions(potion_bag: &Vec<Potion>) {
 fn view_potion_bag(potion_bag: &mut Vec<Potion>) {
     loop {
         print_potions(&potion_bag);
-        let action = get_action(
-            "which potion would you like to view? -1 to edit -2 to remove, -3 to edit amount",
+        let input = get_action(
+            "which potion would you like to view? -1 to edit -2 to remove, -3 to edit amount, -4 to use a potion",
         );
-        if action == 0 {
+        if input == 0 {
             break;
-        } else if action == -1 {
+        } else if input == -1 {
             print_potions(&potion_bag);
             let which = get_action("which potion would you like to edit?");
             let which_field = get_action("which field would you like to edit?\n1. name\n2. effect");
@@ -466,14 +483,29 @@ fn view_potion_bag(potion_bag: &mut Vec<Potion>) {
             } else if which_field == 2 {
                 potion_bag[(which as usize) - 1].edit_effect();
             }
-        } else if action == -2 {
+        } else if input == -2 {
             let which = get_action("which potion would you like to remove?");
+            if which as usize > potion_bag.len() || input < 0 {
+                println!("invalid index");
+                wait();
+                continue;
+            }
             potion_bag.remove((which as usize) - 1);
-        } else if action == -3 {
+        } else if input == -3 {
             let which = get_action("which potion would you like to edit?");
             potion_bag[(which as usize) - 1].edit_amount();
+        } else if input == -4 {
+            let which = get_action("which potion do you want to use?");
+            potion_bag[(which as usize) - 1].use_potion();
+            if potion_bag[(which as usize) - 1].amount <= 0 {
+                potion_bag.remove((which as usize) - 1);
+            }
+        } else if input as usize > potion_bag.len() || input < 0 {
+            println!("invalid index");
+            wait();
+            continue;
         } else {
-            potion_bag[(action as usize) - 1].print();
+            potion_bag[(input as usize) - 1].print();
         }
     }
 }
@@ -484,68 +516,91 @@ fn make_save(path: &str) -> File {
     save_file
 }
 
-// TODO I want to try to combine these somehow, but I dont want to have to refactor the function
-// with every new inventory menu. if I combine them as is, I'd have to fix the required args, every
-// reference to the function, and then add the logic. doable, but seems like more work than making
-// one new function and adding an extra function call to my saving option.
-// figure this out sometime
-
-// following 3 functions deserialize each vec and write to the save file
-fn save_inventory(inventory: &Vec<Item>, save_file: &mut File) {
-    save_file
-        .write(b"*exists*\n")
-        .expect("could not write to inventory save");
-    for item in inventory {
-        let serialized = serde_json::to_string(item).expect("could not serialize inventory");
-        save_file
-            .write(serialized.as_bytes())
-            .expect("could not write serialized inventory");
-        save_file
-            .write(b"\n")
-            .expect("could not write newline in inventory");
-    }
-    save_file
-        .write(b"*end*\n")
-        .expect("could not write end to inventory");
-}
-
-fn save_notebook(notebook: &Vec<Note>, save_file: &mut File) {
-    for note in notebook {
-        let serialized = serde_json::to_string(note).expect("could not serialize notebook");
-        save_file
-            .write(serialized.as_bytes())
-            .expect("could not write notebook");
-        save_file
-            .write(b"\n")
-            .expect("could not write newline in notebook");
-    }
-    save_file
-        .write(b"*end*\n")
-        .expect("could not write end in notebook");
-}
-
-fn save_purse(purse: &Vec<Money>, save_file: &mut File) {
-    for coin in purse {
-        let serialized = serde_json::to_string(coin).expect("purse couldnt serialize");
-        save_file
-            .write(serialized.as_bytes())
-            .expect("purse couldnt write");
-        save_file.write(b"\n").expect("purse couldnt write newline");
-    }
-    save_file
-        .write(b"*end*\n")
-        .expect("purse couldnt write *end*");
-}
-
-fn save_potions(potion_bag: &Vec<Potion>, save_file: &mut File) {
-    for p in potion_bag {
-        let serialized = serde_json::to_string(p).expect("potion bag could not serialize");
-        save_file
-            .write(serialized.as_bytes())
-            .expect("potion bag couldnt write");
-        save_file
-            .write(b"\n")
-            .expect("potion bag couldnt write newline");
+// function that takes all vectors, the current save, and both the temp and final save file paths
+// writes each vector to the temp save, the copies the temp save to the final save
+// and since fs::copy overwrites, no duplicate data is left
+fn save_all(
+    inventory: &Vec<Item>,
+    notebook: &Vec<Note>,
+    purse: &Vec<Money>,
+    potion_bag: &Vec<Potion>,
+    save_file: &mut File,
+    path: &str,
+    temp: &str,
+) {
+    let mut state = SaveState::Inventory;
+    loop {
+        match state {
+            SaveState::Inventory => {
+                save_file
+                    .write(b"*exists*\n")
+                    .expect("could not write to inventory save");
+                for item in inventory {
+                    let serialized =
+                        serde_json::to_string(item).expect("could not serialize inventory");
+                    save_file
+                        .write(serialized.as_bytes())
+                        .expect("could not write serialized inventory");
+                    save_file
+                        .write(b"\n")
+                        .expect("could not write newline in inventory");
+                }
+                save_file
+                    .write(b"*end*\n")
+                    .expect("could not write end to inventory");
+                state = state.next();
+            }
+            SaveState::Notebook => {
+                for note in notebook {
+                    let serialized =
+                        serde_json::to_string(note).expect("could not serialize notebook");
+                    save_file
+                        .write(serialized.as_bytes())
+                        .expect("could not write notebook");
+                    save_file
+                        .write(b"\n")
+                        .expect("could not write newline in notebook");
+                }
+                save_file
+                    .write(b"*end*\n")
+                    .expect("could not write end in notebook");
+                state = state.next();
+            }
+            SaveState::Purse => {
+                for coin in purse {
+                    let serialized = serde_json::to_string(coin).expect("purse couldnt serialize");
+                    save_file
+                        .write(serialized.as_bytes())
+                        .expect("purse couldnt write");
+                    save_file.write(b"\n").expect("purse couldnt write newline");
+                }
+                save_file
+                    .write(b"*end*\n")
+                    .expect("purse couldnt write *end*");
+                state = state.next();
+            }
+            SaveState::Potion => {
+                for p in potion_bag {
+                    let serialized =
+                        serde_json::to_string(p).expect("potion bag could not serialize");
+                    save_file
+                        .write(serialized.as_bytes())
+                        .expect("potion bag couldnt write");
+                    save_file
+                        .write(b"\n")
+                        .expect("potion bag couldnt write newline");
+                }
+                save_file
+                    .write(b"*end*\n")
+                    .expect("potion_bag couldnt write *end*");
+                state = state.next();
+            }
+            SaveState::None => {
+                let _result = fs::copy(temp, path);
+                let _rm_result = fs::remove_file(temp);
+                break;
+            }
+        }
     }
 }
 
@@ -590,35 +645,14 @@ fn create_data(
                     serde_json::from_str(line).expect("potion_bag could not deserialize");
                 potion_bag.push(deserialized);
             }
+            SaveState::None => {}
         }
     }
-}
-
-// writes the contents of the temp save to the real save path
-// fs::copy overwrites, so no duplicate data can be written
-fn write_save(temp: &str, path: &str) {
-    let _result = fs::copy(temp, path);
-    let _rm_result = fs::remove_file(temp);
-}
-
-// checking if the save file is valid
-// i tried to do this in the main function but it didnt work
-// works here tho :shrug:
-fn verify_data(file_path: &str) -> bool {
-    for line in read_to_string(file_path)
-        .expect("could not read file when creating inventory")
-        .lines()
-    {
-        if line == "*exists*" {
-            return true;
-        }
-    }
-    false
 }
 
 fn make_default(purse: &mut Vec<Money>, path: &str) -> File {
     let platinum = Money {
-        coin: MoneyType::Platium,
+        coin: MoneyType::Platinum,
         amount: 0,
     };
     let gold = Money {
@@ -642,75 +676,105 @@ fn make_default(purse: &mut Vec<Money>, path: &str) -> File {
 }
 
 fn main() {
-    // two constants so I can change these without refactoring half my code
+    // constants so I can change these without refactoring half my code
     const SAVE_FILE_PATH: &str = "DnD_save.json";
-    // const OLD_SAVE_PATH: &str = "DnD_save_old.json";
     const TEMP_SAVE_PATH: &str = "temp_save.json";
     const OPTIONS: &str = "please select an option:\n1. view inventory\n2. view notebook\n3. view purse\n4. view potion bag\n5. add item\n6. add note\n7. add potion\n9. save and quit";
-    let menu_state = ProgramState::MainMenu;
 
-    // creating the vecs that i need, and initializing the save_file var
+    // creating the vecs that i need, and initializing a couple vars
     let mut inventory: Vec<Item> = Vec::new();
     let mut notebook: Vec<Note> = Vec::new();
     let mut purse: Vec<Money> = Vec::new();
     let mut potion_bag: Vec<Potion> = Vec::new();
     let mut save_file: File;
+    let mut menu_state: ProgramState = ProgramState::None;
 
-    // checking if the save exists
-    let save_exists: bool = match fs::exists(SAVE_FILE_PATH) {
-        Ok(true) => true,
-        Ok(false) => false,
-        Err(_) => false,
-    };
-    if save_exists {
-        // making sure the save is valid, panicing if not and loading the save data if so
-        let data_safe = verify_data(SAVE_FILE_PATH);
-        if !data_safe {
-            panic!("save corrupted! move \"DnD_save_old.json\" to \"DnD_save.json\"");
+    // checking if the save exists, and handling logic
+    // accordingly
+    match fs::exists(SAVE_FILE_PATH) {
+        Ok(true) => {
+            create_data(
+                &mut inventory,
+                &mut notebook,
+                &mut purse,
+                &mut potion_bag,
+                SAVE_FILE_PATH,
+            );
+            save_file = make_save(TEMP_SAVE_PATH);
         }
-        create_data(
-            &mut inventory,
-            &mut notebook,
-            &mut purse,
-            &mut potion_bag,
-            SAVE_FILE_PATH,
-        );
-        save_file = make_save(TEMP_SAVE_PATH);
-    } else {
-        save_file = make_default(&mut purse, SAVE_FILE_PATH);
-    }
+        Ok(false) => {
+            save_file = make_default(&mut purse, SAVE_FILE_PATH);
+        }
+        Err(_) => {
+            panic!("could not check save file!")
+        }
+    };
     loop {
         // main loop for the program
         clear();
         let action = get_action(OPTIONS);
-        if action == 1 {
-            list_items(&mut inventory);
-        } else if action == 2 {
-            view_notes(&mut notebook);
-        } else if action == 3 {
-            view_purse(&mut purse);
-        } else if action == 4 {
-            view_potion_bag(&mut potion_bag);
-        } else if action == 5 {
-            add_item(&mut inventory);
-        } else if action == 6 {
-            add_note(&mut notebook);
-        } else if action == 7 {
-            add_potion(&mut potion_bag);
-        } else if action == 9 {
-            save_inventory(&inventory, &mut save_file);
-            save_notebook(&notebook, &mut save_file);
-            save_purse(&purse, &mut save_file);
-            save_potions(&potion_bag, &mut save_file);
-            write_save(TEMP_SAVE_PATH, SAVE_FILE_PATH);
-            // this is just here so its obvious that it worked
-            println!("writing data..");
-            wait();
-            break;
-        } else {
-            // if the user inputs literally anything besies the actions listed the loop just
-            // continues
-            continue;
+        // match case for handling user action
+        // then offloading menu logic to a different match case
+        match action {
+            i32::MIN..=0_i32 => continue,
+            1 => {
+                menu_state = ProgramState::InvMenu;
+            }
+            2 => {
+                menu_state = ProgramState::NoteMenu;
+            }
+            3 => {
+                menu_state = ProgramState::PurseMenu;
+            }
+            4 => {
+                menu_state = ProgramState::PotionMenu;
+            }
+            5 => {
+                add_item(&mut inventory);
+            }
+            6 => {
+                add_note(&mut notebook);
+            }
+            7 => {
+                add_potion(&mut potion_bag);
+            }
+            8 => continue,
+            9 => {
+                save_all(
+                    &inventory,
+                    &notebook,
+                    &purse,
+                    &potion_bag,
+                    &mut save_file,
+                    SAVE_FILE_PATH,
+                    TEMP_SAVE_PATH,
+                );
+                // this is just here so its obvious that it worked
+                println!("writing data..");
+                wait();
+                break;
+            }
+            10..=i32::MAX => continue,
+        }
+        // handling menu logic
+        match menu_state {
+            ProgramState::None => {}
+            ProgramState::InvMenu => {
+                view_inv(&mut inventory);
+                menu_state = ProgramState::None;
+            }
+            ProgramState::NoteMenu => {
+                view_notes(&mut notebook);
+                menu_state = ProgramState::None;
+            }
+            ProgramState::PurseMenu => {
+                view_purse(&mut purse);
+                menu_state = ProgramState::None;
+            }
+            ProgramState::PotionMenu => {
+                view_potion_bag(&mut potion_bag);
+                menu_state = ProgramState::None;
+            }
         }
     }
 }
