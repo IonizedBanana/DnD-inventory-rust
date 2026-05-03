@@ -174,6 +174,7 @@ impl Potion {
         println!("old amount: {}", self.amount);
         loop {
             let change_amount = get_action("enter amount changed (+n to add, -n to remove)");
+            // casting here so i dont have to do it later and can reuse this
             let signed_amt = self.amount as i32;
             if (signed_amt + change_amount) >= 0 {
                 self.amount = (signed_amt + change_amount) as u32;
