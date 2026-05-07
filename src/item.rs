@@ -29,6 +29,9 @@ impl Item {
         if !self.value.is_empty() {
             println!("item value: {}", self.value);
         }
+        if self.amount > 1 {
+            println!("amount: {}x", self.amount)
+        }
     }
 
     pub fn edit_name(&mut self) {

@@ -1,20 +1,17 @@
-use std::io;
-use std::io::prelude::*;
-use std::fs::{self, File, read_to_string};
-use dialoguer::Input;
-use crate::states::*;
-use crate::money::*;
 use crate::item::*;
+use crate::money::*;
 use crate::note::*;
 use crate::potion::*;
+use crate::states::*;
+use dialoguer::Input;
+use std::fs::{self, File, read_to_string};
+use std::io;
+use std::io::prelude::*;
 
 // function to pause output until user presses enter
 // mostly so that i can clear output before printing stuff
 pub fn wait() {
-    // _ var name just means im not using whatever value
-    // get_input returns, doing this makes the compiler not
-    // yell at me
-    let _ = get_input("press enter to continue...");
+    get_input("press enter to continue...");
 }
 
 // function to clear the output without just printing 1000 lines
@@ -75,8 +72,12 @@ pub fn get_which(message: &str, len: usize) -> usize {
 // .with_prompt(<some string>) prints <some string>:
 // .with_initial_text is the text that can be edited
 pub fn edit_string(message: &str, curr_val: &String) -> String {
-    let new_val: String = Input::new().with_prompt(message).with_initial_text(curr_val).interact_text().expect("couldnt edit text!");
-    return new_val
+    let new_val: String = Input::new()
+        .with_prompt(message)
+        .with_initial_text(curr_val)
+        .interact_text()
+        .expect("couldnt edit text!");
+    return new_val;
 }
 
 pub fn make_default(purse: &mut Vec<Money>, path: &str) -> File {
