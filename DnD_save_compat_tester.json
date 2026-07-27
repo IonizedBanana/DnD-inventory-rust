@@ -1,0 +1,37 @@
+*exists*
+{"name":"Crossbow, light +2","description":"","damage":"1d8","healing":"","value":""}
+{"name":"broken staff","description":"a magic staff that has been damaged","damage":"","healing":"","value":""}
+{"name":"soulfire crystal","description":"illegal, when crushed it releases a trapped soul, which can power necrotic spells without taking a spell slot. bargaining chip for fiends or devils","damage":"","healing":"","value":""}
+{"name":"3 firestarters","description":"","damage":"","healing":"","value":""}
+{"name":"10 spiked iron","description":"","damage":"","healing":"","value":""}
+{"name":"small casque of strong red wine","description":"","damage":"","healing":"","value":"12 gold"}
+{"name":"wand of charming","description":"","damage":"","healing":"","value":""}
+{"name":"silver sword +2","description":"strong against undead","damage":"2d4+3, +1d4 if undead","healing":"","value":""}
+{"name":"sword of cure wounds","description":"","damage":"1d8","healing":"2d4","value":""}
+{"name":"oracles eye","description":"provides the user advantage for the next 5 rolls in the next 24 hours","damage":"","healing":"","value":""}
+{"name":"Spell Recovery Potion","description":"gives spell slots back","damage":"","healing":"1d3+3 spell slots recovered","value":""}
+{"name":"silver black dragon insignia necklace","description":"","damage":"","healing":"","value":""}
+{"name":"health potion","description":"","damage":"","healing":"2d4+2","value":"6 (i have 6)"}
+{"name":"Helm of Telepathy","description":"while wearing the helm, you have telepathy with a range of 30 feet, and you can cast Detect Thoughts or Suggestion (save DC 13) from the helm. Once either spell is cast from the helm, it cannot be cast from it again until the next dawn","damage":"","healing":"","value":""}
+{"name":"pole of collapsing","description":"a 10 foot pole that can be collapsed into a 1 foot pole with a command word, a seperate command word can be spoken to expand it no larger than the space it occupies","damage":"","healing":"","value":""}
+*end*
+{"title":"lukes note","body":"crystal cavern in darunian mountains, paw print signiture"}
+{"title":"cocomelon village","body":"adventurers guild HQ"}
+{"title":"mysterious old man","body":"old man, white cloak, cane. sign that reads \"find me\""}
+{"title":"stupid fat fucking pig","body":"fatty, fuck"}
+{"title":"The Fox","body":"paw print, part of adventurers guild, bounty"}
+{"title":"goblet was stolen by black dragon cultist","body":""}
+{"title":"church of palor bad","body":""}
+{"title":"marla graven","body":"being hunted by the silent veil, in hiding"}
+{"title":"red dagger = active bounty","body":""}
+{"title":"the silent veil is looking for us","body":""}
+{"title":"eldrim sagebrook","body":"wants a rellic or something to study, knowns nothing about it. (oracles eye)"}
+{"title":"relic location","body":"duskmire thicket, west of huk tu across a bridge"}
+{"title":"Jim Bam Bim Bam aka Jimothy","body":"yellow"}
+{"title":"black cultist scroll on dead guy","body":"treasure found: darunian mountains"}
+*end*
+{"coin":"Platinum","amount":0}
+{"coin":"Gold","amount":1685}
+{"coin":"Silver","amount":2}
+{"coin":"Copper","amount":0}
+*end*

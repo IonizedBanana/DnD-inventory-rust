@@ -1,0 +1,12 @@
+*exists*
+{"name":"item","description":"","damage":"","healing":"","value":""}
+*end*
+{"title":"note","body":"note body"}
+*end*
+{"coin":"Platium","amount":0}
+{"coin":"Gold","amount":0}
+{"coin":"Silver","amount":0}
+{"coin":"Copper","amount":0}
+*end*
+{"name":"potion","effect":"potion effect","amount":2}
+{"name":"","effect":"","amount":2}
