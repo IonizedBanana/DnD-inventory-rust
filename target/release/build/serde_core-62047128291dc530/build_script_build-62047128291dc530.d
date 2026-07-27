@@ -1,5 +1,0 @@
-/home/banana/coding/projects/rust/dnd/target/release/build/serde_core-62047128291dc530/build_script_build-62047128291dc530.d: /home/banana/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde_core-1.0.228/build.rs
-
-/home/banana/coding/projects/rust/dnd/target/release/build/serde_core-62047128291dc530/build_script_build-62047128291dc530: /home/banana/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde_core-1.0.228/build.rs
-
-/home/banana/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde_core-1.0.228/build.rs:
