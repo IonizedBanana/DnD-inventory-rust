@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use crate::util::*;
+use serde::{Deserialize, Serialize};
 
 // structure for notes
 #[derive(Serialize, Deserialize)]

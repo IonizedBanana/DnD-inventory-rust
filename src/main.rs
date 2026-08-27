@@ -1,17 +1,19 @@
-use std::fs::{self, File};
-use crate::util::*;
-use crate::states::*;
-use crate::money::*;
+use crate::character::*;
 use crate::item::*;
+use crate::money::*;
 use crate::note::*;
 use crate::potion::*;
+use crate::spells::*;
+use crate::states::*;
+use crate::util::*;
+use std::fs::{self, File};
 
-pub mod money;
 pub mod item;
+pub mod money;
 pub mod note;
-pub mod util;
-pub mod states;
 pub mod potion;
+pub mod states;
+pub mod util;
 
 fn main() {
     // constants so I can change these without refactoring half my code

@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use crate::{states::PrintState, util::*};
+use serde::{Deserialize, Serialize};
 
 // structure for an item
 #[derive(Serialize, Deserialize)]

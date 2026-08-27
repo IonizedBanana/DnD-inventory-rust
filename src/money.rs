@@ -1,10 +1,10 @@
-use serde::{Deserialize, Serialize};
 use crate::util::*;
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
 pub struct Money {
-   pub coin: MoneyType,
-   pub amount: i32,
+    pub coin: MoneyType,
+    pub amount: i32,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

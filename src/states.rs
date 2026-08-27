@@ -43,7 +43,7 @@ impl PrintState {
     }
 
     // used to print either an arrow or a comma
-    // for listing descriptors, makes it easy to 
+    // for listing descriptors, makes it easy to
     // print without hard coded logic
     pub fn format_print(&self) {
         match *self {
